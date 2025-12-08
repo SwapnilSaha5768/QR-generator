@@ -124,9 +124,10 @@ router.post('/api/generate', requireAuth, async (req, res) => {
         await newQR.save();
 
         if (finalQrType === 'dynamic') {
-            const localIp = getLocalNetworkIp();
-            const port = process.env.PORT || 3000;
-            const redirectUrl = `http://${localIp}:${port}/s/${newQR._id}`;
+            // Use the host from the request to generate the URL (works on Vercel and Localhost)
+            const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+            const host = req.get('host');
+            const redirectUrl = `${protocol}://${host}/s/${newQR._id}`;
 
             console.log(`Generated Dynamic QR for ${url} -> ${redirectUrl}`);
 

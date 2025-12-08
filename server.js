@@ -50,20 +50,29 @@ app.use(session({
 app.use('/', require('./routes/index'));
 app.use('/', require('./routes/auth'));
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Catch-all route for React SPA
+app.get(/(.*)/, (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+});
 
-    // Log the IP that will be used for QRs
-    const os = require('os');
-    let localIp = 'localhost';
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                localIp = iface.address;
-                break;
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+
+        // Log the IP that will be used for QRs
+        const os = require('os');
+        let localIp = 'localhost';
+        const interfaces = os.networkInterfaces();
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    localIp = iface.address;
+                    break;
+                }
             }
         }
-    }
-    console.log(`Dynamic QRs will point to: http://${localIp}:${PORT}`);
-});
+        console.log(`Dynamic QRs will point to: http://${localIp}:${PORT}`);
+    });
+}
+
+module.exports = app;
