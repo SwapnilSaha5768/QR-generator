@@ -4,7 +4,6 @@ const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
 // Check Auth Status
-// Check Auth Status
 router.get('/api/auth/check', (req, res) => {
     // Debug logging
     if (!req.session) {
@@ -24,6 +23,13 @@ router.get('/api/auth/check', (req, res) => {
 router.post('/api/auth/register', async (req, res) => {
     const { username, password } = req.body;
     console.log('Register attempt:', username);
+
+    // Safety check for req.session
+    if (!req.session) {
+        console.error('[CRITICAL] req.session is undefined in /register');
+        return res.status(500).json({ error: 'Server misconfiguration: Session undefined' });
+    }
+
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({ username, password_hash: hashedPassword });
@@ -44,63 +50,43 @@ router.post('/api/auth/register', async (req, res) => {
 // Login Logic
 router.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
-    console.log('Login attempt:', username);
     try {
         const user = await User.findOne({ username });
-        if (!user) {
-            console.log('User not found:', username);
-            return res.status(401).json({ error: 'Invalid username or password' });
-        }
+        if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
-        const match = await bcrypt.compare(password, user.password_hash);
-        if (match) {
-            req.session.user = { id: user._id.toString(), username: user.username };
-            console.log('Login success:', username);
-            res.json({ success: true, user: req.session.user });
-        } else {
-            console.log('Password mismatch:', username);
-            res.status(401).json({ error: 'Invalid username or password' });
-        }
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+
+        req.session.user = { id: user._id.toString(), username: user.username };
+        res.json({ success: true, user: req.session.user });
     } catch (error) {
-        console.error('Login error:', error);
         res.status(500).json({ error: 'Server Error' });
     }
 });
 
-// Update Profile
+// Update Profile Logic
 router.put('/api/auth/profile', async (req, res) => {
     if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { username, password } = req.body;
     try {
-        const updateData = {};
-        if (username) updateData.username = username;
-        if (password) {
-            updateData.password_hash = await bcrypt.hash(password, 10);
-        }
+        const user = await User.findById(req.session.user.id);
+        if (username) user.username = username;
+        if (password) user.password_hash = await bcrypt.hash(password, 10);
 
-        const updatedUser = await User.findByIdAndUpdate(
-            req.session.user.id,
-            updateData,
-            { new: true, runValidators: true }
-        );
-
-        // Update session
-        req.session.user.username = updatedUser.username;
+        await user.save();
+        req.session.user.username = user.username;
         res.json({ success: true, user: req.session.user });
     } catch (error) {
-        console.error('Update error:', error);
-        if (error.code === 11000) {
-            return res.status(400).json({ error: 'Username already exists' });
-        }
         res.status(500).json({ error: 'Server Error' });
     }
 });
 
-// Logout
+// Logout Logic
 router.post('/api/auth/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) console.error(err);
+    req.session.destroy(err => {
+        if (err) return res.status(500).json({ error: 'Logout failed' });
+        res.clearCookie('connect.sid');
         res.json({ success: true });
     });
 });
