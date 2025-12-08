@@ -37,12 +37,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Robustly resolve client/dist path
-const clientDistPath = path.join(__dirname, 'client/dist');
-const backupDistPath = path.join(process.cwd(), 'client/dist');
-const finalDistPath = require('fs').existsSync(clientDistPath) ? clientDistPath : backupDistPath;
-
-app.use(express.static(finalDistPath));
+// Robustly resolve dist path (now in root)
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath));
 
 app.use(session({
     store: MongoStore.create({ mongoUrl: MONGO_URI, mongoOptions: { tlsAllowInvalidCertificates: true } }),
@@ -56,8 +53,9 @@ app.use('/', require('./routes/index'));
 app.use('/', require('./routes/auth'));
 
 // Catch-all route for React SPA with Error Handling
+// Catch-all route for React SPA with Error Handling
 app.get(/(.*)/, (req, res) => {
-    const indexPath = path.join(finalDistPath, 'index.html');
+    const indexPath = path.join(distPath, 'index.html');
     res.sendFile(indexPath, (err) => {
         if (err) {
             console.error('Error serving index.html:', err);
@@ -69,6 +67,7 @@ app.get(/(.*)/, (req, res) => {
                 <p>Error: ${err.message}</p>
                 <p>Current Directory: ${__dirname}</p>
                 <p>Process CWD: ${process.cwd()}</p>
+                <p>Dist Directory Exists: ${require('fs').existsSync(distPath)}</p>
             `);
         }
     });
