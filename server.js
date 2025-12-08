@@ -39,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Robustly resolve dist path (now in root)
 const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
+// app.use(express.static(distPath)); // HANDLED BY VERCEL
 
 app.use(session({
     store: MongoStore.create({ mongoUrl: MONGO_URI, mongoOptions: { tlsAllowInvalidCertificates: true } }),
@@ -52,25 +52,10 @@ app.use(session({
 app.use('/', require('./routes/index'));
 app.use('/', require('./routes/auth'));
 
-// Catch-all route for React SPA with Error Handling
-// Catch-all route for React SPA with Error Handling
-app.get(/(.*)/, (req, res) => {
-    const indexPath = path.join(distPath, 'index.html');
-    res.sendFile(indexPath, (err) => {
-        if (err) {
-            console.error('Error serving index.html:', err);
-            // If file missing, show debug info directly
-            res.status(500).send(`
-                <h1>Deployment Error</h1>
-                <p>Could not serve index.html.</p>
-                <p>Attempted Path: ${indexPath}</p>
-                <p>Error: ${err.message}</p>
-                <p>Current Directory: ${__dirname}</p>
-                <p>Process CWD: ${process.cwd()}</p>
-                <p>Dist Directory Exists: ${require('fs').existsSync(distPath)}</p>
-            `);
-        }
-    });
+// Catch-all route is handled by Vercel Rewrites -> index.html
+// If a request hits here, it means it didn't match any API route
+app.get('*', (req, res) => {
+    res.status(404).send('API endpoint not found');
 });
 
 // This block ONLY runs when running locally (e.g. 'npm run dev')
