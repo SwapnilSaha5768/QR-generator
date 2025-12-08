@@ -23,6 +23,9 @@
             "dest": "/server.js"
         },
         {
+            "handle": "filesystem"
+        },
+        {
             "src": "/(.*)",
             "dest": "/index.html"
         }
