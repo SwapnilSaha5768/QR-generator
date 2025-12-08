@@ -4,7 +4,15 @@ const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
 // Check Auth Status
+// Check Auth Status
 router.get('/api/auth/check', (req, res) => {
+    // Debug logging
+    if (!req.session) {
+        console.error('CRITICAL: req.session is undefined in /check.');
+        // This implies express-session failed to initialize
+        return res.json({ isAuthenticated: false, debug_error: 'Session undefined' });
+    }
+
     if (req.session.user) {
         res.json({ isAuthenticated: true, user: req.session.user });
     } else {

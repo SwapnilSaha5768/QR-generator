@@ -85,6 +85,16 @@ app.get('*', (req, res) => {
     res.status(404).send('API endpoint not found');
 });
 
+// Global Error Handler (Must be last)
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: err.message,
+        stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack
+    });
+});
+
 // This block ONLY runs when running locally (e.g. 'npm run dev')
 // Vercel skips this because it imports 'app' as a module
 if (require.main === module) {
