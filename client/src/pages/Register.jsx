@@ -15,7 +15,8 @@ export default function Register() {
             const success = await register(username, password);
             if (success) navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.error || 'Registration failed');
+            const errorMsg = err.response?.data?.error;
+            setError(typeof errorMsg === 'string' ? errorMsg : (JSON.stringify(errorMsg) || 'Registration failed'));
         }
     };
 

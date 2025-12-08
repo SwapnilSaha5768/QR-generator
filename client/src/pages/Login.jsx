@@ -15,7 +15,8 @@ export default function Login() {
             const success = await login(username, password);
             if (success) navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.error || 'Login failed');
+            const errorMsg = err.response?.data?.error;
+            setError(typeof errorMsg === 'string' ? errorMsg : (JSON.stringify(errorMsg) || 'Login failed'));
         }
     };
 

@@ -31,14 +31,32 @@ connectDB();
 
 const cors = require('cors');
 
+// Essential for Vercel/Heroku logic
+app.set('trust proxy', 1);
+
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
+
+// Dynamic CORS for Production & Localhost
 app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Allow localhost and your vercel domains
+        const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -51,7 +69,11 @@ app.use(session({
     secret: 'your_secret_key_here',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+    cookie: {
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        secure: process.env.NODE_ENV === 'production', // true on Vercel
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Cross-site cookie (frontend -> backend)
+    }
 }));
 
 app.use('/', require('./routes/index'));
