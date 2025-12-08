@@ -11,6 +11,11 @@ const MONGO_URI = process.env.MONGO_URI;
 
 // Database Connection
 const connectDB = async () => {
+    if (!MONGO_URI) {
+        console.error('CRITICAL ERROR: MONGO_URI is invalid or missing.');
+        console.error('Please add MONGO_URI to your Vercel Environment Variables.');
+        return;
+    }
     try {
         await mongoose.connect(MONGO_URI, {
             serverSelectionTimeoutMS: 5000,
