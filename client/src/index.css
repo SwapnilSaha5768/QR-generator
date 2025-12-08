@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-gradient-to-br from-dark via-[#1a1a2e] to-dark min-h-screen text-white font-sans;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply bg-glass-bg backdrop-blur-md border border-glass-border rounded-2xl p-8 shadow-2xl;
+    }
+
+    .btn {
+        @apply w-full py-3 rounded-lg bg-gradient-to-r from-primary to-secondary text-white font-semibold transition-transform hover:-translate-y-0.5 hover:shadow-lg;
+    }
+
+    .input-field {
+        @apply w-full p-3 rounded-lg border border-glass-border bg-white/5 text-white outline-none focus:border-primary transition-colors;
+    }
+}
