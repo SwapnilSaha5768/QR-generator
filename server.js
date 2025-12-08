@@ -37,7 +37,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static(path.join(__dirname, 'client/dist')));
+// Robustly resolve client/dist path
+const clientDistPath = path.join(__dirname, 'client/dist');
+const backupDistPath = path.join(process.cwd(), 'client/dist');
+const finalDistPath = require('fs').existsSync(clientDistPath) ? clientDistPath : backupDistPath;
+
+app.use(express.static(finalDistPath));
 
 app.use(session({
     store: MongoStore.create({ mongoUrl: MONGO_URI, mongoOptions: { tlsAllowInvalidCertificates: true } }),
@@ -50,11 +55,27 @@ app.use(session({
 app.use('/', require('./routes/index'));
 app.use('/', require('./routes/auth'));
 
-// Catch-all route for React SPA
+// Catch-all route for React SPA with Error Handling
 app.get(/(.*)/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+    const indexPath = path.join(finalDistPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            console.error('Error serving index.html:', err);
+            // If file missing, show debug info directly
+            res.status(500).send(`
+                <h1>Deployment Error</h1>
+                <p>Could not serve index.html.</p>
+                <p>Attempted Path: ${indexPath}</p>
+                <p>Error: ${err.message}</p>
+                <p>Current Directory: ${__dirname}</p>
+                <p>Process CWD: ${process.cwd()}</p>
+            `);
+        }
+    });
 });
 
+// This block ONLY runs when running locally (e.g. 'npm run dev')
+// Vercel skips this because it imports 'app' as a module
 if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT}`);
