@@ -5,6 +5,7 @@ client/node_modules
 
 # Production
 client/dist
+dist
 build
 
 # Environment
@@ -21,6 +22,10 @@ yarn-debug.log*
 yarn-error.log*
 logs
 *.log
+
+# Temporary Test Scripts
+test_*.js
+register_payload.json
 
 # System
 .DS_Store
