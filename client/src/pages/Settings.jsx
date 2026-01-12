@@ -1,33 +1,57 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Eye, EyeOff } from 'lucide-react';
+
+const settingsSchema = z.object({
+    username: z.string().min(1, 'Username is required'),
+    password: z.string().optional(),
+}).refine(data => !data.password || data.password.length >= 6, {
+    message: "Password must be at least 6 characters if provided",
+    path: ["password"]
+});
 
 export default function Settings() {
     const { user } = useAuth();
-    const [username, setUsername] = useState(user?.username || '');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
 
-    const handleUpdate = async (e) => {
-        e.preventDefault();
-        setLoading(true);
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors, isSubmitting },
+    } = useForm({
+        resolver: zodResolver(settingsSchema),
+        defaultValues: {
+            username: user?.username || '',
+            password: '',
+        },
+    });
+
+    const onSubmit = async (data) => {
         setMessage(null);
         try {
+            const payload = { username: data.username };
+            if (data.password) {
+                payload.password = data.password;
+            }
+
             const res = await axios.put(
                 '/api/auth/profile',
-                { username, password },
+                payload,
                 { withCredentials: true }
             );
             if (res.data.success) {
                 setMessage({ type: 'success', text: 'Profile updated successfully' });
-                setPassword(''); // Clear password field
+                reset({ ...data, password: '' });
             }
         } catch (err) {
             console.error(err);
             setMessage({ type: 'error', text: err.response?.data?.error || 'Update failed' });
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -42,29 +66,37 @@ export default function Settings() {
                     </div>
                 )}
 
-                <form onSubmit={handleUpdate} className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <div>
                         <label className="block text-gray-400 mb-2">Username</label>
                         <input
                             type="text"
-                            className="input-field"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
+                            className={`input-field ${errors.username ? 'border-red-500' : ''}`}
+                            {...register('username')}
                         />
+                        {errors.username && <p className="text-red-400 text-sm mt-1">{errors.username.message}</p>}
                     </div>
                     <div>
                         <label className="block text-gray-400 mb-2">New Password (leave blank to keep current)</label>
-                        <input
-                            type="password"
-                            className="input-field"
-                            placeholder="********"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                className={`input-field pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                                placeholder="********"
+                                {...register('password')}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+                        {errors.password && <p className="text-red-400 text-sm mt-1">{errors.password.message}</p>}
                     </div>
-                    <button type="submit" className="btn w-full" disabled={loading}>
-                        {loading ? 'Updating...' : 'Update Profile'}
+                    <button type="submit" className="btn w-full" disabled={isSubmitting}>
+                        {isSubmitting ? 'Updating...' : 'Update Profile'}
                     </button>
                 </form>
             </div>

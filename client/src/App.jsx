@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import LoadingSpinner from './components/LoadingSpinner';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -10,8 +11,8 @@ import { useAuth } from './context/AuthContext';
 
 function PrivateRoute({ children }) {
     const { user, loading } = useAuth();
-    if (loading) return <div>Loading...</div>;
-    return user ? children : <Navigate to="/login" />;
+    if (loading) return <LoadingSpinner />;
+    return user ? children : <Navigate to="/login" replace />;
 }
 
 function App() {
