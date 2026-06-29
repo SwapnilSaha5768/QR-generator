@@ -3,6 +3,8 @@ import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadingSpinner';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import MyQRs from './pages/MyQRs';
 import EditQR from './pages/EditQR';
@@ -22,6 +24,9 @@ function App() {
                 <Route index element={<Navigate to="/dashboard" />} />
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="reset-password/:token" element={<ResetPassword />} />
+
                 <Route
                     path="dashboard"
                     element={

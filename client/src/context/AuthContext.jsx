@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }) => {
                 setUser(null);
             }
         } catch (err) {
-            console.error(err);
             setUser(null);
         } finally {
             setLoading(false);
@@ -35,7 +34,6 @@ export const AuthProvider = ({ children }) => {
                 return true;
             }
         } catch (err) {
-            console.error(err);
             throw err;
         }
         return false;
@@ -49,19 +47,36 @@ export const AuthProvider = ({ children }) => {
                 return true;
             }
         } catch (err) {
-            console.error(err);
+            throw err;
+        }
+        return false;
+    };
+
+    const googleLogin = async (idToken) => {
+        try {
+            const res = await axios.post('/api/auth/google', { idToken }, { withCredentials: true });
+            if (res.data.success) {
+                setUser(res.data.user);
+                return true;
+            }
+        } catch (err) {
             throw err;
         }
         return false;
     };
 
     const logout = async () => {
-        await axios.post('/api/auth/logout', {}, { withCredentials: true });
-        setUser(null);
+        try {
+            await axios.post('/api/auth/logout', {}, { withCredentials: true });
+        } catch (err) {
+            // silent catch on logout
+        } finally {
+            setUser(null);
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, googleLogin, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

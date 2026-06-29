@@ -16,7 +16,6 @@ const connectDB = async () => {
         console.error('CRITICAL ERROR: MONGO_URI is invalid or missing.');
         return;
     }
-    // Prevent multiple connections
     if (mongoose.connection.readyState >= 1) return;
 
     try {
@@ -37,28 +36,22 @@ app.use(async (req, res, next) => {
     next();
 });
 
-// Essential for Vercel/Heroku logic
 app.set('trust proxy', 1);
 
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-
-    // Prevent caching of any content to ensure security on logout
+    // Prevent caching of sensitive content to ensure security on logout
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
-
     next();
 });
 
 // Dynamic CORS for Production & Localhost
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        // Allow localhost (any port) and your vercel domains
-        const allowedOrigins = ['http://localhost:3000'];
+        const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173'];
         if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app') || /^http:\/\/localhost:\d+$/.test(origin)) {
             callback(null, true);
         } else {
@@ -72,7 +65,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check Route (Placed before session to work even if DB fails)
+// Health Check Route
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
@@ -83,15 +76,12 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-const distPath = path.join(__dirname, 'dist');
-// app.use(express.static(distPath)); // HANDLED BY VERCEL
-
 app.use(session({
     store: MongoStore.create({
-        mongoUrl: MONGO_URI, // Simpler, more robust for Vercel
+        mongoUrl: MONGO_URI,
         mongoOptions: { tlsAllowInvalidCertificates: true }
     }),
-    secret: 'your_secret_key_here',
+    secret: process.env.SESSION_SECRET || process.env.SECRET_KEY || 'qr_secure_default_session_secret_key_2026',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -104,30 +94,19 @@ app.use(session({
 app.use('/', require('./routes/index'));
 app.use('/', require('./routes/auth'));
 
-// Catch-all route is handled by Vercel Rewrites -> index.html
 app.get(/(.*)/, (req, res) => {
     res.status(404).send('API endpoint not found');
 });
 
-// Global Error Handler
+// Global Error Handler (Sanitized for security)
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+    const message = process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message;
+    res.status(500).json({ error: 'Internal Server Error', message });
 });
 
 if (require.main === module) {
     app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-
-    // Log local IP for testing
-    const os = require('os');
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                console.log(`Dynamic QRs will point to: http://${iface.address}:${PORT}`);
-            }
-        }
-    }
 }
 
 module.exports = app;
